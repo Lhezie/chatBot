@@ -10,7 +10,7 @@ const FoodStatsPieChart = () => {
   const [data, setData] = useState([]);
 
   useEffect(() => {
-    fetch('http://localhost:4000/stats/most-ordered')
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/stats/most-ordered`)  
       .then(res => res.json())
       .then(data => {
         const formatted = data.map(item => ({
