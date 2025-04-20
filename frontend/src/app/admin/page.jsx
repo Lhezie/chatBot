@@ -1,4 +1,4 @@
-import FoodStatsPieChart from '../../components/FoodStatsPieChart';
+// import FoodStatsPieChart from '../../components/FoodStatsPieChart';
 
 export default function AdminPage() {
   return (
