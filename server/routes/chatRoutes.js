@@ -47,15 +47,23 @@ router.post("/", async (req, res) => {
     }
 
     // Add the selected item to order if input is number and menu exists
-    if (!isNaN(input) && session.menu && session.menu.length > 0) {
+    if (!isNaN(input)) {
+      // Fallback: If menu is missing, re-fetch it
+      if (!session.menu || session.menu.length === 0) {
+        const menu = await MenuItem.find();
+        session.menu = menu;
+      }
+    
       const index = parseInt(input) - 1;
       const menu = session.menu;
-
+    
       if (menu[index]) {
         session.currentOrder.push(menu[index]);
         return res.json({
           reply: ` ${menu[index].name} added to your order.\nType another number or 99 to checkout.`,
         });
+      } else {
+        return res.json({ reply: 'Invalid menu option. Type 1 to see the menu again.' });
       }
     }
 
@@ -74,18 +82,13 @@ router.post("/", async (req, res) => {
     if (input === "99") {
       if (session.currentOrder.length === 0) {
         return res.json({
-          reply: `Order placed!`,
-          payUrl: paymentUrl,
-          amount: total * 100,
+          reply: `No items in your order. Type 1 to start a new one.`,
         });
       }
-
-      const total = session.currentOrder.reduce(
-        (sum, item) => sum + item.price,
-        0
-      );
+    
+      const total = session.currentOrder.reduce((sum, item) => sum + item.price, 0);
       console.log(` Total: ₦${total} | Items:`, session.currentOrder.length);
-
+    
       const newOrder = await Order.create({
         sessionId: session.deviceId,
         items: session.currentOrder,
@@ -93,9 +96,9 @@ router.post("/", async (req, res) => {
         paid: false,
         status: "Pending",
       });
-
+    
       session.currentOrder = [];
-
+    
       console.log(" Creating Paystack payment link...");
       const paystackResponse = await axios.post(
         "https://api.paystack.co/transaction/initialize",
@@ -112,10 +115,12 @@ router.post("/", async (req, res) => {
           },
         }
       );
-
+    
       const paymentUrl = paystackResponse.data.data.authorization_url;
       return res.json({
-        reply: ` Order placed!\nTotal: ₦${total}\n Click below to pay:\n${paymentUrl}`,
+        reply: `Order placed! Total: ₦${total}`,
+        payUrl: paymentUrl,
+        amount: total,
       });
     }
 

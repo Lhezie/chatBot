@@ -145,7 +145,7 @@ const ChatBot = () => {
                   {msg.payUrl && (
                     <div style={{ marginTop: "10px", textAlign: "center" }}>
                       <p style={{ marginBottom: "8px", fontWeight: "bold" }}>
-                        {/* Order Placed! Total: ₦{msg.amount / 100} */}
+                        Order Placed! Total: ₦{msg.amount}
                       </p>
                       <a
                         href={msg.payUrl}
@@ -158,6 +158,7 @@ const ChatBot = () => {
                           padding: "8px 16px",
                           borderRadius: "20px",
                           display: "inline-block",
+                          animation: "pulse 1s infinite", // 👈 optional blinking animation
                         }}
                       >
                         Pay Now

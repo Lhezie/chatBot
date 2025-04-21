@@ -8,6 +8,7 @@ import chatRoutes from './routes/chatRoutes.js';
 import paystackRoutes from './routes/paystackRoutes.js';
 import seedMenu from './seed/seedMenu.js';
 import statsRoutes from './routes/statsRoutes.js';
+import MongoStore from "connect-mongo"; 
 
 dotenv.config();
 
@@ -53,13 +54,18 @@ app.use(express.json());
 app.use(session({
   secret: 'secret-key',
   resave: false,
-  saveUninitialized: true,
+  saveUninitialized: false,
+  store: MongoStore.create({
+    mongoUrl: process.env.MONGO_URI,
+    collectionName: 'sessions',
+  }),
   cookie: {
-    secure: false,
+    secure: process.env.NODE_ENV === 'production', 
     httpOnly: true,
-    sameSite: 'lax',
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', 
   },
 }));
+
 
 // Connect MongoDB
 mongoose.connect(process.env.MONGO_URI)
