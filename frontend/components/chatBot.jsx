@@ -20,7 +20,7 @@ const ChatBot = () => {
     setInput("");
 
     try {
-      const res = await fetch(process.env.REACT_APP_SERVER_URL || "http://localhost:4000", {
+      const res = await fetch(process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
