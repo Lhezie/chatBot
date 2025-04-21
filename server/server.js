@@ -30,14 +30,17 @@ if (isNaN(PORT)) {
 }
 
 // CORS setup
-const allowedOrigins = [process.env.FRONTEND_BASE_URL];
+const allowedOrigins = [
+  'http://localhost:3000',
+  'https://chat-bot-five-beryl.vercel.app',
+];
 
 app.use(cors({
   origin: function (origin, callback) {
     if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
-      callback(new Error('Not allowed by CORS'));
+      callback(new Error('Not allowed by CORS: ' + origin));
     }
   },
   credentials: true,
