@@ -6,7 +6,8 @@ const ChatBot = () => {
   const [messages, setMessages] = useState([
     {
       from: "bot",
-      text: "Welcome to LeezieBite! \nType 1 to view the menu 🍽️",
+      text: "Welcome to LeezieBite!  \n 1 - View the menu 🍽️  \n 99 - Checkout order  \n 98 - See order history \n 97 - See current order \n   0 - Cancel order",
+
     },
   ]);
   const [input, setInput] = useState("");

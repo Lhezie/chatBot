@@ -1,14 +1,13 @@
-
 import express from 'express';
 import cors from 'cors';
 import session from 'express-session';
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
+import MongoStore from "connect-mongo";
 import chatRoutes from './routes/chatRoutes.js';
 import paystackRoutes from './routes/paystackRoutes.js';
 import seedMenu from './seed/seedMenu.js';
 import statsRoutes from './routes/statsRoutes.js';
-import MongoStore from "connect-mongo"; 
 
 dotenv.config();
 
@@ -25,7 +24,6 @@ app.use((req, res, next) => {
 });
 
 const PORT = parseInt(process.env.PORT, 10) || 4000;
-
 if (isNaN(PORT)) {
   throw new Error(`Invalid PORT value in .env: ${process.env.PORT}`);
 }
@@ -47,7 +45,6 @@ app.use(cors({
   credentials: true,
 }));
 
-
 app.use(express.json());
 
 // Session config
@@ -60,51 +57,30 @@ app.use(session({
     collectionName: 'sessions',
   }),
   cookie: {
-    secure: process.env.NODE_ENV === 'production', 
+    secure: false,
     httpOnly: true,
-    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', 
+    sameSite: 'lax',
   },
 }));
 
-
-// Connect MongoDB
+// MongoDB
 mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log('MongoDB connected'))
   .catch(err => console.error('MongoDB connection error:', err));
 
+// Routes
 app.use((req, res, next) => {
   console.log(' Middleware HIT:', req.method, req.path);
   next();
 });
 
-app.post('/test-debug', (req, res) => {
-  console.log('/test-debug HIT');
-  res.send('test-debug worked');
-});
-
 app.use('/', chatRoutes);
-
-app.use((req, res, next) => {
-  console.log('⚡ Headers:', req.headers);
-  console.log('⚡ Session:', req.session);
-  next();
-});
-
 app.use('/payment', paystackRoutes);
 app.use('/seedmenu', seedMenu);
 app.use('/stats', statsRoutes);
 
 app.get('/', (req, res) => {
-  res.send(' LeezieBite ChatBot API is running');
-});
-
-app.post('/test-simple', (req, res) => {
-  res.json({ message: 'Route works!' });
-});
-
-app.post('/test', (req, res) => {
-  console.log('Test route hit!');
-  res.send('Test successful!');
+  res.send('LeezieBite ChatBot API is running');
 });
 
 app.use((req, res) => {

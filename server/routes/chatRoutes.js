@@ -6,8 +6,6 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
-
-
 const router = express.Router();
 
 const OPTIONS = `Welcome to LeezieBite Bot!
@@ -19,21 +17,16 @@ Please select an option:
 0 - Cancel order`;
 
 router.post("/", async (req, res) => {
-  console.log("Chat route hit");
-
   try {
     const { message, sessionId } = req.body;
-    console.log("Message:", message, "| Session:", sessionId);
-
     const session = req.session;
     session.deviceId = sessionId;
     if (!session.currentOrder) session.currentOrder = [];
 
     const input = message.trim();
 
-    //  Menu shows once user types "1"
+    // Show menu
     if (input === "1") {
-      console.log("Fetching menu...");
       const menu = await MenuItem.find();
       session.menu = menu;
 
@@ -46,49 +39,47 @@ router.post("/", async (req, res) => {
       });
     }
 
-    // Add the selected item to order if input is number and menu exists
-    if (!isNaN(input)) {
-      // Fallback: If menu is missing, re-fetch it
-      if (!session.menu || session.menu.length === 0) {
-        const menu = await MenuItem.find();
-        session.menu = menu;
-      }
-    
-      const index = parseInt(input) - 1;
-      const menu = session.menu;
-    
-      if (menu[index]) {
-        session.currentOrder.push(menu[index]);
-        return res.json({
-          reply: ` ${menu[index].name} added to your order.\nType another number or 99 to checkout.`,
-        });
-      } else {
-        return res.json({ reply: 'Invalid menu option. Type 1 to see the menu again.' });
-      }
-    }
-
-    //  Show current order
+    // Show current order
     if (input === "97") {
       if (!session.currentOrder.length) {
-        return res.json({ reply: "🕳️ No current order." });
+        return res.json({ reply: "No current order." });
       }
       const list = session.currentOrder
         .map((item, i) => `${i + 1}. ${item.name} - ₦${item.price}`)
         .join("\n");
-      return res.json({ reply: ` Current Order:\n${list}` });
+      return res.json({ reply: `Current Order:\n${list}` });
     }
 
-    // Checkout/Make payment via paystack
+    // View order history
+    if (input === "98") {
+      const orders = await Order.find({ sessionId: session.deviceId });
+      const history = orders
+        .map((o, i) => `${i + 1}. ₦${o.total} - ${o.status}`)
+        .join("\n");
+      return res.json({
+        reply: `Order History:\n${history || "No orders yet."}`,
+      });
+    }
+
+    // Cancel order
+    if (input === "0") {
+      session.currentOrder = [];
+      return res.json({ reply: "Your order has been cancelled." });
+    }
+
+    // Checkout
     if (input === "99") {
-      if (session.currentOrder.length === 0) {
+      if (!session.currentOrder.length) {
         return res.json({
-          reply: `No items in your order. Type 1 to start a new one.`,
+          reply: "No order to place. Type 1 to start a new order.",
         });
       }
-    
-      const total = session.currentOrder.reduce((sum, item) => sum + item.price, 0);
-      console.log(` Total: ₦${total} | Items:`, session.currentOrder.length);
-    
+
+      const total = session.currentOrder.reduce(
+        (sum, item) => sum + item.price,
+        0
+      );
+
       const newOrder = await Order.create({
         sessionId: session.deviceId,
         items: session.currentOrder,
@@ -96,10 +87,9 @@ router.post("/", async (req, res) => {
         paid: false,
         status: "Pending",
       });
-    
+
       session.currentOrder = [];
-    
-      console.log(" Creating Paystack payment link...");
+
       const paystackResponse = await axios.post(
         "https://api.paystack.co/transaction/initialize",
         {
@@ -115,35 +105,34 @@ router.post("/", async (req, res) => {
           },
         }
       );
-    
+
       const paymentUrl = paystackResponse.data.data.authorization_url;
       return res.json({
-        reply: `Order placed! Total: ₦${total}`,
-        payUrl: paymentUrl,
-        amount: total,
+        reply: `Order placed!\nTotal: ₦${total}\nClick below to pay:\n${paymentUrl}`,
       });
     }
 
-    // View order history
-    if (input === "98") {
-      console.log(" Fetching order history...");
-      const orders = await Order.find({ sessionId: session.deviceId });
-      const history = orders
-        .map((o, i) => `${i + 1}. ₦${o.total} - ${o.status}`)
-        .join("\n");
+    // Add menu item
+    if (!isNaN(input)) {
+      if (!session.menu || session.menu.length === 0) {
+        const menu = await MenuItem.find();
+        session.menu = menu;
+      }
 
-      return res.json({
-        reply: ` Order History:\n${history || "No orders yet."}`,
-      });
+      const index = parseInt(input) - 1;
+      const menu = session.menu;
+
+      if (menu[index]) {
+        session.currentOrder.push(menu[index]);
+        return res.json({
+          reply: `${menu[index].name} added to your order.\nType another number or 99 to checkout.`,
+        });
+      } else {
+        return res.json({ reply: "Invalid menu option. Type 1 to see the menu again." });
+      }
     }
 
-    // Cancel order
-    if (input === "0") {
-      session.currentOrder = [];
-      return res.json({ reply: " Your order has been cancelled." });
-    }
-
-    // Fallback: Repeat options
+    // Default fallback
     return res.json({ reply: OPTIONS });
   } catch (error) {
     console.error("Chat route error:", error);
@@ -152,13 +141,3 @@ router.post("/", async (req, res) => {
 });
 
 export default router;
-
-// import express from 'express';
-// const router = express.Router();
-
-// router.post('/', (req, res) => {
-//   console.log('chatRoutes POST hit');
-//   res.json({ reply: 'basic response from chatRoutes' });
-// });
-
-// export default router;
