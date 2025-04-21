@@ -20,12 +20,17 @@ router.post("/", async (req, res) => {
   try {
     const { message, sessionId } = req.body;
     const session = req.session;
-    session.deviceId = sessionId;
+
+    // Set deviceId only once to keep session consistent
+    if (!session.deviceId) {
+      session.deviceId = sessionId;
+    }
+
     if (!session.currentOrder) session.currentOrder = [];
 
     const input = message.trim();
 
-    // Show menu
+    // 1 - Show menu
     if (input === "1") {
       const menu = await MenuItem.find();
       session.menu = menu;
@@ -34,42 +39,53 @@ router.post("/", async (req, res) => {
         .map((item, i) => `${i + 1} - ${item.name} - ₦${item.price}`)
         .join("\n");
 
-      return res.json({
-        reply: `Menu:\n${menuList}\nSelect item number to add.`,
-      });
+      return req.session.save(() =>
+        res.json({
+          reply: `Menu:\n${menuList}\nSelect item number to add.`,
+        })
+      );
     }
 
-    // Show current order
+    // Add item to order
+    if (!isNaN(input)) {
+      if (!session.menu || session.menu.length === 0) {
+        session.menu = await MenuItem.find();
+      }
+
+      const index = parseInt(input) - 1;
+      const menu = session.menu;
+
+      if (menu[index]) {
+        session.currentOrder.push(menu[index]);
+
+        return req.session.save(() =>
+          res.json({
+            reply: ` ${menu[index].name} added to your order.\nType another number or 99 to checkout.`,
+          })
+        );
+      } else {
+        return res.json({
+          reply: "Invalid menu option. Type 1 to see the menu again.",
+        });
+      }
+    }
+
+    // 97 - Show current order
     if (input === "97") {
-      if (!session.currentOrder.length) {
+      if (!session.currentOrder || session.currentOrder.length === 0) {
         return res.json({ reply: "No current order." });
       }
+
       const list = session.currentOrder
         .map((item, i) => `${i + 1}. ${item.name} - ₦${item.price}`)
         .join("\n");
+
       return res.json({ reply: `Current Order:\n${list}` });
     }
 
-    // View order history
-    if (input === "98") {
-      const orders = await Order.find({ sessionId: session.deviceId });
-      const history = orders
-        .map((o, i) => `${i + 1}. ₦${o.total} - ${o.status}`)
-        .join("\n");
-      return res.json({
-        reply: `Order History:\n${history || "No orders yet."}`,
-      });
-    }
-
-    // Cancel order
-    if (input === "0") {
-      session.currentOrder = [];
-      return res.json({ reply: "Your order has been cancelled." });
-    }
-
-    // Checkout
+    // 99 - Checkout
     if (input === "99") {
-      if (!session.currentOrder.length) {
+      if (!session.currentOrder || session.currentOrder.length === 0) {
         return res.json({
           reply: "No order to place. Type 1 to start a new order.",
         });
@@ -107,32 +123,38 @@ router.post("/", async (req, res) => {
       );
 
       const paymentUrl = paystackResponse.data.data.authorization_url;
+
+      return req.session.save(() =>
+        res.json({
+          reply: `Order placed!\nTotal: ₦${total}\nClick below to pay:`,
+          payUrl: paymentUrl,
+          amount: total * 100,
+        })
+      );
+    }
+
+    // 98 - Order history
+    if (input === "98") {
+      const orders = await Order.find({ sessionId: session.deviceId });
+      const history = orders
+        .map((o, i) => `${i + 1}. ₦${o.total} - ${o.status}`)
+        .join("\n");
+
       return res.json({
-        reply: `Order placed!\nTotal: ₦${total}\nClick below to pay:\n${paymentUrl}`,
+        reply: `Order History:\n${history || "No orders yet."}`,
       });
     }
 
-    // Add menu item
-    if (!isNaN(input)) {
-      if (!session.menu || session.menu.length === 0) {
-        const menu = await MenuItem.find();
-        session.menu = menu;
-      }
+    // 0 - Cancel order
+    if (input === "0") {
+      session.currentOrder = [];
 
-      const index = parseInt(input) - 1;
-      const menu = session.menu;
-
-      if (menu[index]) {
-        session.currentOrder.push(menu[index]);
-        return res.json({
-          reply: `${menu[index].name} added to your order.\nType another number or 99 to checkout.`,
-        });
-      } else {
-        return res.json({ reply: "Invalid menu option. Type 1 to see the menu again." });
-      }
+      return req.session.save(() =>
+        res.json({ reply: "Your order has been cancelled." })
+      );
     }
 
-    // Default fallback
+    // Fallback
     return res.json({ reply: OPTIONS });
   } catch (error) {
     console.error("Chat route error:", error);
