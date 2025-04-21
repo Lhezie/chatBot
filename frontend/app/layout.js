@@ -20,7 +20,7 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
-      <body className="no-tailwind">
+      <body className="">
         <div className="page-wrapper no-scroll">
           {/* Header */}
           <header className="top-header">
