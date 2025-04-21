@@ -1,4 +1,3 @@
-
 import './globals.css';
 import { Geist, Geist_Mono } from "next/font/google";
 
@@ -19,8 +18,8 @@ export const metadata = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en">
-      <body className="">
+    <html lang="en" className={`${geistSans.variable} ${geistMono.variable}`}>
+      <body suppressHydrationWarning={true} className="">
         <div className="page-wrapper no-scroll">
           {/* Header */}
           <header className="top-header">
@@ -30,6 +29,7 @@ export default function RootLayout({ children }) {
           {/* Background */}
           <div className="hero-only" />
 
+          {/* Main Content */}
           <main className="content">
             {children}
           </main>
