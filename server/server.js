@@ -23,7 +23,8 @@ app.use((req, res, next) => {
   next();
 });
 
-const PORT = parseInt(process.env.PORT, 10) || NEXT_PUBLIC_API_URL;
+const PORT = parseInt(process.env.PORT, 10) || 4000;
+
 if (isNaN(PORT)) {
   throw new Error(`Invalid PORT value in .env: ${process.env.PORT}`);
 }
