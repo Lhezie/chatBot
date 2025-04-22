@@ -6,15 +6,15 @@ const PaymentSuccess = () => {
   const router = useRouter();
 
   useEffect(() => {
+    // After 10s auto‑return with the chatOpen flag
     const timeout = setTimeout(() => {
-      // Auto-close modal or redirect logic can go here
+      router.push('/?chatOpen=true');
     }, 10000);
-
     return () => clearTimeout(timeout);
-  }, []);
+  }, [router]);
 
   const handleBack = () => {
-    router.push('/');
+    router.push('/?chatOpen=true');
   };
 
   return (
@@ -23,7 +23,7 @@ const PaymentSuccess = () => {
         <h2 style={styles.title}>✅ Payment Successful!</h2>
         <p style={styles.message}>Thank you for your order 🎉</p>
         <button style={styles.button} onClick={handleBack}>
-          Return to Home
+          ← Back to Chat
         </button>
       </div>
     </div>

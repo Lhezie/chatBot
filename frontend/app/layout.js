@@ -1,25 +1,28 @@
-import './globals.css';
-import { Geist, Geist_Mono } from "next/font/google";
+import './globals.css'
+import { Geist, Geist_Mono } from 'next/font/google'
+import Script from 'next/script'
 
 const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
+  variable: '--font-geist-sans',
+  subsets: ['latin'],
+})
 
 const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+  variable: '--font-geist-mono',
+  subsets: ['latin'],
+})
 
 export const metadata = {
-  title: "LeezieBite - Food Reimagined",
-  description: "Order delicious meals effortlessly with our chatbot 🍽️",
-};
+  title: 'LeezieBite - Food Reimagined',
+  description: 'Order delicious meals effortlessly with our chatbot 🍽️',
+}
 
 export default function RootLayout({ children }) {
   return (
     <html lang="en" className={`${geistSans.variable} ${geistMono.variable}`}>
-      <body suppressHydrationWarning={true} className="">
+      <body suppressHydrationWarning>
+        {/* Paystack inline checkout script */}
+        
         <div className="page-wrapper no-scroll">
           {/* Header */}
           <header className="top-header">
@@ -30,11 +33,9 @@ export default function RootLayout({ children }) {
           <div className="hero-only" />
 
           {/* Main Content */}
-          <main className="content">
-            {children}
-          </main>
+          <main className="content">{children}</main>
         </div>
       </body>
     </html>
-  );
+  )
 }
