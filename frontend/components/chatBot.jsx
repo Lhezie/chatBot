@@ -1,36 +1,50 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
 
 const ChatBot = () => {
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState([
     {
       from: "bot",
-      text: "Welcome to LeezieBite!  \n 1 - View the menu 🍽️  \n 99 - Checkout order  \n 98 - See order history \n 97 - See current order \n   0 - Cancel order",
-
+      text:
+        "Welcome to LeezieBite!  \n" +
+        "1 - View the menu 🍽️  \n" +
+        "99 - Checkout order  \n" +
+        "98 - See order history  \n" +
+        "97 - See current order  \n" +
+        "0 - Cancel order",
     },
   ]);
   const [input, setInput] = useState("");
+  const [loading, setLoading] = useState(false);
+  const bottomRef = useRef(null);
   const sessionId = "react-user-123";
 
-  const sendMessage = async () => {
-    if (!input.trim()) return;
+  // Scroll to bottom whenever messages or loading change
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, loading]);
 
-    const newMessages = [...messages, { from: "user", text: input }];
-    setMessages(newMessages);
+  const sendMessage = async () => {
+    if (!input.trim() || loading) return;
+
+    // 1. Show the user's message
+    setMessages((prev) => [...prev, { from: "user", text: input }]);
     setInput("");
+    setLoading(true);
 
     try {
-      const res = await fetch(process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000", {
+      const res = await fetch(`${API_URL}/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
         body: JSON.stringify({ message: input, sessionId }),
       });
-
       const data = await res.json();
 
-      // Check for Paystack link
+      // 2. Check for Paystack link
       const urlMatch = data.reply.match(
         /https:\/\/checkout\.paystack\.com\/[^\s]+/
       );
@@ -45,13 +59,19 @@ const ChatBot = () => {
           },
         ]);
       } else {
-        setMessages((prev) => [...prev, { from: "bot", text: data.reply }]);
+        setMessages((prev) => [
+          ...prev,
+          { from: "bot", text: data.reply },
+        ]);
       }
-    } catch {
+    } catch (err) {
+      console.error(err);
       setMessages((prev) => [
         ...prev,
         { from: "bot", text: "Error talking to server" },
       ]);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -98,6 +118,7 @@ const ChatBot = () => {
             fontFamily: "sans-serif",
           }}
         >
+          {/* Header */}
           <div
             style={{
               backgroundColor: "#e67b58",
@@ -109,11 +130,15 @@ const ChatBot = () => {
             }}
           >
             <span>💬 LeezieBite</span>
-            <span onClick={() => setOpen(false)} style={{ cursor: "pointer" }}>
+            <span
+              onClick={() => setOpen(false)}
+              style={{ cursor: "pointer" }}
+            >
               ✖
             </span>
           </div>
 
+          {/* Message Pane */}
           <div
             style={{
               flex: 1,
@@ -144,10 +169,12 @@ const ChatBot = () => {
                 >
                   {msg.text}
                   {msg.payUrl && (
-                    <div style={{ marginTop: "10px", textAlign: "center" }}>
-                      <p style={{ marginBottom: "8px", fontWeight: "bold" }}>
-                        {/* Order Placed! Total: ₦{msg.amount / 100} */}
-                      </p>
+                    <div
+                      style={{
+                        marginTop: "10px",
+                        textAlign: "center",
+                      }}
+                    >
                       <a
                         href={msg.payUrl}
                         target="_blank"
@@ -168,8 +195,33 @@ const ChatBot = () => {
                 </div>
               </div>
             ))}
+
+            {/* Loading Spinner */}
+            {loading && (
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "center",
+                  padding: "10px",
+                }}
+              >
+                <div
+                  style={{
+                    width: "24px",
+                    height: "24px",
+                    border: "3px solid #ccc",
+                    borderTop: "3px solid #e67b58",
+                    borderRadius: "50%",
+                    animation: "spin 1s linear infinite",
+                  }}
+                />
+              </div>
+            )}
+
+            <div ref={bottomRef} />
           </div>
 
+          {/* Input Bar */}
           <div
             style={{
               display: "flex",
@@ -183,6 +235,7 @@ const ChatBot = () => {
               onChange={(e) => setInput(e.target.value)}
               onKeyPress={(e) => e.key === "Enter" && sendMessage()}
               placeholder="Type a message..."
+              disabled={loading}
               style={{
                 flex: 1,
                 padding: "8px",
@@ -193,6 +246,7 @@ const ChatBot = () => {
             />
             <button
               onClick={sendMessage}
+              disabled={loading}
               style={{
                 marginLeft: "10px",
                 backgroundColor: "#e67b58",
@@ -201,7 +255,7 @@ const ChatBot = () => {
                 borderRadius: "50%",
                 padding: "8px 12px",
                 fontSize: "16px",
-                cursor: "pointer",
+                cursor: loading ? "not-allowed" : "pointer",
               }}
             >
               ➤
@@ -209,6 +263,14 @@ const ChatBot = () => {
           </div>
         </div>
       )}
+
+      {/* Spinner keyframes */}
+      <style jsx>{`
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+      `}</style>
     </>
   );
 };
