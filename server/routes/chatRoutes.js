@@ -27,8 +27,9 @@ router.post("/", async (req, res) => {
       const menu = await MenuItem.find();
       session.menu = menu;
       const menuList = menu
-        .map((item, i) => `${i + 1} - ${item.name} - ₦${item.price}`)
+        .map((item, i) => `${i + 2} - ${item.name} - ₦${item.price}`)
         .join("\n");
+
       return res.json({
         reply: `Menu:\n${menuList}\nSelect item number to add.`,
       });
@@ -36,12 +37,15 @@ router.post("/", async (req, res) => {
 
     // 97) Current cart
     if (input === "97") {
-      if (!session.currentOrder.length)
-        return res.json({ reply: "🕳️ No current order." });
-      const list = session.currentOrder
+      const list = (session.previousOrder || [])
         .map((it, i) => `${i + 1}. ${it.name} - ₦${it.price}`)
         .join("\n");
-      return res.json({ reply: `Current Order:\n${list}` });
+    
+      return res.json({
+        reply: list
+          ? `Your order:\n${list}`
+          : "🕳️ No recent order to show. Type 1 to place one.",
+      });
     }
 
     // 99) Checkout → Paystack
@@ -77,10 +81,16 @@ router.post("/", async (req, res) => {
       );
 
       const paymentUrl = paystackRes.data.data.authorization_url;
+
+      // Add this safe session update:
+      session.previousOrder = [...session.currentOrder];
+      session.currentOrder = [];
+    
       return res.json({
         reply: `Order placed!\nTotal: ₦${total}\nClick below to pay:\n${paymentUrl}`,
         total,
       });
+    
     }
 
     // 98) Order history — fetch only PAID orders
@@ -109,7 +119,7 @@ router.post("/", async (req, res) => {
     // Numeric → add to cart
     if (!isNaN(input)) {
       if (!session.menu?.length) session.menu = await MenuItem.find();
-      const idx = parseInt(input, 10) - 1;
+      const idx = parseInt(input, 10) - 2;;
       const item = session.menu[idx];
       if (item) {
         session.currentOrder.push(item);
